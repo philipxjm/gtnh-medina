@@ -4,6 +4,10 @@
 > - `fluid_telem.lua`: fluid name is `Plutonium 241 Plasma` (no hyphen), matching the actual
 >   GTNH 2.9 fluid label — the upstream spelling crashes the fluid node on scan
 >   (`attempt to compare number with nil` at scanPlasmaStock) and would report Pu-241 stock as 0.
+> - `config.lua` + `hw_telem.lua`: drone names carry their voltage suffix — the real 2.9 items
+>   are `Mining Drone MK-IX (UHV)` etc., so upstream's bare `Mining Drone MK-IX` matches nothing:
+>   hw telemetry reports zero drones (masking drill kits too) and the loader could never pull one.
+>   (`MK-XIV` doesn't exist in 2.9; its entry is inert.)
 > - `config.lua`: Orundum Dust added (`dustTargets` → Lanthanum asteroid, and a 10m condition),
 >   plus my stock thresholds.
 > - `update.lua` (new): per-node updater — set `ROLE` once, run `update` to re-pull that
