@@ -24,20 +24,20 @@ end
 -- when requesting items via transposer.
 --------------------------------------------------------------------------------
 config.drones = {
-  lv  = "Mining Drone MK-I (LV)",
-  mv  = "Mining Drone MK-II (MV)",
-  hv  = "Mining Drone MK-III (HV)",
-  ev  = "Mining Drone MK-IV (EV)",
-  iv  = "Mining Drone MK-V (IV)",
-  luv = "Mining Drone MK-VI (LuV)",
-  zpm = "Mining Drone MK-VII (ZPM)",
-  uv  = "Mining Drone MK-VIII (UV)",
-  uhv = "Mining Drone MK-IX (UHV)",
-  uev = "Mining Drone MK-X (UEV)",
-  uiv = "Mining Drone MK-XI (UIV)",
-  umv = "Mining Drone MK-XII (UMV)",
-  uxv = "Mining Drone MK-XIII (UXV)",
-  max = "Mining Drone MK-XIV"
+  lv  = "Mining Drone Mk-I (LV)",
+  mv  = "Mining Drone Mk-II (MV)",
+  hv  = "Mining Drone Mk-III (HV)",
+  ev  = "Mining Drone Mk-IV (EV)",
+  iv  = "Mining Drone Mk-V (IV)",
+  luv = "Mining Drone Mk-VI (LuV)",
+  zpm = "Mining Drone Mk-VII (ZPM)",
+  uv  = "Mining Drone Mk-VIII (UV)",
+  uhv = "Mining Drone Mk-IX (UHV)",
+  uev = "Mining Drone Mk-X (UEV)",
+  uiv = "Mining Drone Mk-XI (UIV)",
+  umv = "Mining Drone Mk-XII (UMV)",
+  uxv = "Mining Drone Mk-XIII (UXV)",
+  max = "Mining Drone Mk-XIV"
 }
 
 -- Iteration order for best-available drone selection (highest tier first).
