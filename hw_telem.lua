@@ -107,13 +107,29 @@ local function drawStaticFrame()
   term.setCursor(2, 24) io.write("  Network Port: 2026")
 end
 
--- Reads items directly from ME network via controller
+-- Reads items directly from ME network via controller. The proxy is
+-- re-resolved every scan: a proxy captured once at boot goes stale if the
+-- adapter or controller ever re-attaches, and the old silent empty-return
+-- made that look like zero stock forever. A failed scan is now reported.
 local function scanAssets()
   local assets = { drones={}, drillTips={}, drillRods={} }
 
+  local ctrl = nil
+  for addr in component.list("me_controller") do
+    ctrl = component.proxy(addr)
+    break
+  end
+  if not ctrl then
+    assets.scanError = "NO ME CONTROLLER"
+    return assets
+  end
+
   -- Query all items in the ME network
-  local success, itemList = pcall(me.getItemsInNetwork)
-  if not success or not itemList then return assets end
+  local success, itemList = pcall(ctrl.getItemsInNetwork)
+  if not success or not itemList then
+    assets.scanError = "ME SCAN FAILED"
+    return assets
+  end
 
   for _, item in ipairs(itemList) do
     if item.label then
@@ -168,9 +184,14 @@ local function updateDashboard(assets)
     end
   end
 
-  gpu.setForeground(0x555555)
   term.setCursor(55, 2)
-  io.write("LAST_SYNC: " .. os.date("%X"))
+  if assets.scanError then
+    gpu.setForeground(0xFF4444)
+    io.write("SCAN: " .. assets.scanError .. " " .. os.date("%X"))
+  else
+    gpu.setForeground(0x555555)
+    io.write("LAST_SYNC: " .. os.date("%X"))
+  end
 end
 
 drawStaticFrame()
