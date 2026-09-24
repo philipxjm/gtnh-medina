@@ -18,7 +18,8 @@
 --   transposerAddr : Transposer between the ME Interface buffer and the Input Bus
 --   interfaceSide  : transposer side facing the ME Interface buffer (0-5)
 --   inputBusSide   : transposer side facing the Input Bus (0-5)
---   distanceParam  : setParameters index for distance (usually 0)
+--   distanceParam  : legacy, unused — the parametrizer is key-based now
+--                    (setParameter("distance", v)); kept for config-format stability
 --
 -- Transposer side numbers (OpenComputers sides API):
 --   0 = bottom (down)   1 = top (up)

@@ -59,7 +59,7 @@ if not fs.exists(CONFIG_PATH) then
 --
 -- PER-MODULE HARDWARE
 --   moduleAddr     OC Adapter adjacent to the Mining Module controller block.
---                  Exposes setParameters() / setWorkAllowed() / isMachineActive().
+--                  Exposes setParameter(key, value) / setWorkAllowed() / isMachineActive().
 --
 --   ifaceAddr      OC Adapter adjacent to the ME Interface.
 --                  Exposes store() and setInterfaceConfiguration().
@@ -501,7 +501,7 @@ local POLL_INTERVAL = 5 * 20   -- Minecraft seconds between active-status polls 
 local function startModule(mod, distance)
   -- Parameter index 0 is the distance value, confirmed in-game.
   local ok, err = pcall(function()
-    mod.adapter.setParameters(mod.conf.distanceParam, 0, distance)
+    mod.adapter.setParameter("distance", distance)
     mod.adapter.setWorkAllowed(true)
   end)
   if not ok then return false, tostring(err) end
@@ -561,7 +561,7 @@ local function stepDone(mod)
   -- Clear module distance parameter to reset adapter state
   pcall(function()
     mod.adapter.setWorkAllowed(false)
-    mod.adapter.setParameters(mod.conf.distanceParam, 0, 1)
+    mod.adapter.setParameter("distance", 1)
   end)
   log("DONE M" .. mod.index .. ": " .. mod.job.asteroid)
   modLog(mod.index, "Job complete!")

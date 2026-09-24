@@ -205,7 +205,11 @@ local function pollLoad(mod)
       tostring(s.arrivePolls)))
     mod.status = "RUNNING"
     mod.job.startTime = os.time()
-    mod.adapter.setParameters(mod.conf.distanceParam, 0, mod.job.distance)
+    -- Key-based parametrizer API (GTNH Computronics): parameters are set by
+    -- NBT key, not numeric indices. Parallel is pinned to the job so the
+    -- machine can never disagree with the consumables loaded for it.
+    mod.adapter.setParameter("distance", mod.job.distance)
+    if mod.job.parallels then mod.adapter.setParameter("parallel", mod.job.parallels) end
     mod.adapter.setWorkAllowed(true)
   else
     mod.status = "ERROR"

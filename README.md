@@ -11,6 +11,12 @@
 >   (`MK-XIV` doesn't exist in 2.9; its entry is inert.)
 > - `config.lua`: Orundum Dust added (`dustTargets` → Lanthanum asteroid, and a 10m condition),
 >   plus my stock thresholds.
+> - `broker-mk3.lua` + `job_node.lua`: ported to the key-based parametrizer API — GTNH's
+>   Computronics driver exposes `setParameter(key, value)` / `getParameters()` (keys are the
+>   TecTech NBT keys: `distance`, `parallel`, `cycle`, `cycleDistance`, `range`, `step`), and the
+>   numeric `setParameters(hatch, index, value)` upstream calls no longer exists. The broker also
+>   pins `parallel` to the job so the machine matches its loaded consumables; `distanceParam` in
+>   the module config is legacy/unused.
 > - `update.lua` (new): per-node updater — set `ROLE` once, run `update` to re-pull that
 >   machine's files from this repo.
 >
