@@ -7,7 +7,7 @@
 -- can never be regressed by re-running the upstream installer.
 -- =============================================================================
 
-local ROLE = "broker"  -- "broker" | "dust" | "hw" | "fluid"
+local ROLE = "broker"  -- "broker" | "dust" | "hw" | "fluid" | "pump"
 
 local RAW = "https://raw.githubusercontent.com/philipxjm/gtnh-medina/main/"
 
@@ -19,6 +19,7 @@ local FILES = {
   dust  = { "config.lua", "dust_telem.lua" },
   hw    = { "hw_telem.lua" },
   fluid = { "config.lua", "fluid_telem.lua" },
+  pump  = { "space_pump.lua" },
 }
 
 local list = FILES[ROLE]

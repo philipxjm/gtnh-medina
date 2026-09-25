@@ -20,6 +20,11 @@
 > - `update.lua` (new): per-node updater — set `ROLE` once, run `update` to re-pull that
 >   machine's files from this repo.
 >
+> Also here: `space_pump.lua` — the wiki's "Median and Offset" Space Elevator pump automation
+> (Option 2, by Fox/samsonsin), vendored verbatim for beta-3 (its parametrizer calls are already
+> key-based; all 40 fluid labels dataset-verified) plus a pump-discovery report that lists every
+> visible gt_machine name when no pump matches, so a renamed module self-diagnoses.
+>
 > Note: the QUICKSTART's "set `targetSide`" step is stale — current telem scripts auto-detect
 > the first ME Controller on their network, so each node's cabling must reach exactly one.
 
