@@ -64,8 +64,12 @@ local master = {
 
 local target = 1
 local dynamicTargetOffset = 10e9 -- adds to the median fluid amount to set as the target
-local singularityCellSize = 4.61e18
-local maxStorageAmount = singularityCellSize*0.99
+-- Cap per fluid at what a 16384k ME Fluid Storage Cell holds:
+-- 16384 * 1024 bytes * 2048 mB/byte (AE2U fluids store 8*256 mB per byte)
+-- = 34,359,738,368 mB (~34.36 GL), kept at 99% like the original
+-- singularity default. One partitioned cell per fluid assumed.
+local cellSize = 16384 * 1024 * 2048
+local maxStorageAmount = cellSize * 0.99
 
 -- The Upper Limit on the Duration of an Iteration (Default: 30s)
 local maxBatchSize = 30
