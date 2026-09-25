@@ -429,34 +429,35 @@ local function dispatchBatch()
   local cap        = asteroidCap()
   local astCount   = activeAsteroidCounts()
 
-  for _, droneKey in ipairs(config.droneKeyOrder) do
-    if (avail[droneKey] or 0) > 0 then
-      local droneTier = config.droneTierKeys[droneKey]
-      local drillKey  = config.droneDrillMap[droneTier]
-
-      -- Need both a free drone AND a free kit of the matching material.
-      if drillKey and (availKit[drillKey] or 0) > 0 then
-        for asteroidName, asteroidData in pairs(config.asteroids) do
-          -- Stop scanning once we've exhausted this drone or its kits.
-          if (avail[droneKey] or 0) <= 0 or (availKit[drillKey] or 0) <= 0 then break end
-          if droneTier >= asteroidData.minDrone and droneTier <= asteroidData.maxDrone then
-            -- Eligible if it's a current need AND under its module cap.
-            if neededAsteroids[asteroidName] and (astCount[asteroidName] or 0) < cap then
-              local assigned = false
-              for idx = #idleModules, 1, -1 do
-                local mod = idleModules[idx]
-                if tryDispatch(mod, asteroidName, droneKey) then
-                  astCount[asteroidName] = (astCount[asteroidName] or 0) + 1
-                  avail[droneKey]        = avail[droneKey] - 1     -- consume a drone
-                  availKit[drillKey]     = availKit[drillKey] - 1  -- consume a kit
-                  table.remove(idleModules, idx)
-                  assigned = true
-                  break
-                end
-              end
-              if assigned and #idleModules == 0 then return end
+  -- Needs-first dispatch. Upstream iterated drones highest-tier-first, which
+  -- let high-tier-eligible asteroids monopolize a small fleet: with one
+  -- module, a needy Cosmic/Lanthanum always consumed the only slot during
+  -- the Mk-IX pass, so Gem Ores (drones I-VI) starved forever. Serving the
+  -- needs list in its priority order instead makes the sort meaningful; each
+  -- need still gets the highest-tier drone its asteroid accepts.
+  for _, need in ipairs(needs) do
+    if #idleModules == 0 then return end
+    local asteroidName = need.asteroid
+    local asteroidData = config.asteroids[asteroidName]
+    if asteroidData and (astCount[asteroidName] or 0) < cap then
+      for _, droneKey in ipairs(config.droneKeyOrder) do
+        local droneTier = config.droneTierKeys[droneKey]
+        local drillKey  = config.droneDrillMap[droneTier]
+        if (avail[droneKey] or 0) > 0 and drillKey and (availKit[drillKey] or 0) > 0
+            and droneTier >= asteroidData.minDrone and droneTier <= asteroidData.maxDrone then
+          local assigned = false
+          for idx = #idleModules, 1, -1 do
+            local mod = idleModules[idx]
+            if tryDispatch(mod, asteroidName, droneKey) then
+              astCount[asteroidName] = (astCount[asteroidName] or 0) + 1
+              avail[droneKey]        = avail[droneKey] - 1     -- consume a drone
+              availKit[drillKey]     = availKit[drillKey] - 1  -- consume a kit
+              table.remove(idleModules, idx)
+              assigned = true
+              break
             end
           end
+          if assigned then break end
         end
       end
     end

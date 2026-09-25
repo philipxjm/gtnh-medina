@@ -17,6 +17,10 @@
 >   numeric `setParameters(hatch, index, value)` upstream calls no longer exists. The broker also
 >   pins `parallel` to the job so the machine matches its loaded consumables; `distanceParam` in
 >   the module config is legacy/unused.
+> - `broker-mk3.lua`: needs-first dispatch — upstream iterated drones highest-tier-first, so with
+>   a small fleet the high-tier-eligible asteroids monopolized every module slot and low-window
+>   asteroids (Gem Ores, drones I-VI) starved. The needs list's priority order now decides; each
+>   need still uses the highest-tier drone its asteroid accepts.
 > - `update.lua` (new): per-node updater — set `ROLE` once, run `update` to re-pull that
 >   machine's files from this repo.
 >
