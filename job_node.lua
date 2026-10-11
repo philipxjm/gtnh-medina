@@ -495,8 +495,6 @@ end
 -- MODULE CONTROL & STATE MACHINE
 -- =============================================================================
 
-local STARTUP_GRACE = 10  -- seconds after start before polling isMachineActive (let module fully spin up)
-local POLL_INTERVAL = 5 * 20   -- Minecraft seconds between active-status polls (0.25 real seconds for fast DONE detection)
 
 local function startModule(mod, distance)
   -- Parameter index 0 is the distance value, confirmed in-game.
@@ -536,20 +534,63 @@ local function stepLoading(mod)
       " x"    .. tostring(mod.job.parallels))
   modLog(mod.index, "Running job...")
   mod.status    = "RUNNING"
+  mod.run       = nil
   mod.startTime = os.time()
   mod.lastPoll  = os.time()
   sendJobAck(mod.job.jobId, "STARTED")  -- ACK: job actually started
 end
 
--- RUNNING: poll the module until it reports inactive (job complete)
+-- RUNNING: poll the module until its job is really over. One idle poll is not
+-- enough: GT starts the multiblock on a later server tick, and between cycles a
+-- failed recipe check (EU buffer refilling, computation/plasma briefly short)
+-- idles it until GT retries. A job ends when the machine is idle AND its drill
+-- tips/rods are used up (under 4 left), or it has idled past a timeout.
+-- Times are real seconds (computer.uptime); os.time() runs 72x faster.
+local RUN_POLL      = 1
+local START_TIMEOUT = 30
+local STALL_TIMEOUT = 45
+
+local function consumablesLeft(mod)
+  local ok, tip, rod = pcall(function()
+    return mod.transposer.getStackInSlot(mod.conf.inputBusSide, 2),
+           mod.transposer.getStackInSlot(mod.conf.inputBusSide, 3)
+  end)
+  if not ok then return nil end
+  return (tip and tip.size or 0), (rod and rod.size or 0)
+end
+
 local function stepRunning(mod)
-  local now = os.time()
-  if now - mod.startTime < STARTUP_GRACE then return end  -- let it spin up
-  if now - mod.lastPoll  < POLL_INTERVAL  then return end  -- throttle API calls
-  mod.lastPoll = now
+  local now = computer.uptime()
+  local r = mod.run
+  if not r then
+    r = { started = now, nextPoll = now + RUN_POLL, everActive = false }
+    mod.run = r
+  end
+  if now < r.nextPoll then return end
+  r.nextPoll = now + RUN_POLL
 
   local ok, isActive = pcall(mod.adapter.isMachineActive)
-  if ok and not isActive then
+  if ok and isActive then
+    r.everActive = true
+    r.idleSince = nil
+    return
+  end
+
+  local tips, rods = consumablesLeft(mod)
+  local finished = r.everActive and tips and (tips < 4 or rods < 4)
+  r.idleSince = r.idleSince or now
+  local idle = now - r.idleSince
+  if not finished then
+    if not r.everActive and idle >= START_TIMEOUT then
+      log("WARN M" .. mod.index .. ": never started within " .. START_TIMEOUT .. "s")
+      finished = true
+    elseif r.everActive and idle >= STALL_TIMEOUT then
+      log("WARN M" .. mod.index .. ": idle " .. STALL_TIMEOUT .. "s with consumables left (power/computation/plasma?)")
+      finished = true
+    end
+  end
+  if finished then
+    mod.run = nil
     mod.status = "DONE"
   end
 end

@@ -204,6 +204,7 @@ local function pollLoad(mod)
       mod.index, tostring(cp.drone), tostring(cp.tip), tostring(cp.rod),
       tostring(s.arrivePolls)))
     mod.status = "RUNNING"
+    mod.run = nil  -- stepRunning starts a fresh supervision window
     mod.job.startTime = os.time()
     -- Key-based parametrizer API (GTNH Computronics): parameters are set by
     -- NBT key, not numeric indices. Parallel is pinned to the job so the
@@ -217,10 +218,73 @@ local function pollLoad(mod)
   end
 end
 
+-- RUNNING supervision. A mining module is not "done" just because one poll
+-- saw it idle: GT only starts a multiblock on a later server tick after
+-- setWorkAllowed(true), and between cycles a failed recipe check (EU buffer
+-- refilling, computation or plasma briefly short) idles it until GT retries.
+-- Stopping it on the first idle poll killed jobs that would have carried on.
+-- So a job ends only when the machine is idle AND either its drill tips/rods
+-- are used up (fewer than one parallel's worth, 4 each, left in the bus), or
+-- it has stayed idle past a timeout. All times are real seconds (uptime).
+local RUN_POLL      = 1    -- seconds between isMachineActive polls
+local START_TIMEOUT = 30   -- seconds to wait for the module's first active tick
+local STALL_TIMEOUT = 45   -- seconds a started module may idle with consumables left
+
+-- Drill tips and rods left in the input bus (loader puts them in slots 2 and 3).
+-- Returns nil if the transposer can't be read.
+local function consumablesLeft(mod)
+  local ok, tip, rod = pcall(function()
+    return mod.transposer.getStackInSlot(mod.conf.inputBusSide, 2),
+           mod.transposer.getStackInSlot(mod.conf.inputBusSide, 3)
+  end)
+  if not ok then return nil end
+  return (tip and tip.size or 0), (rod and rod.size or 0)
+end
+
+local function beginRun(mod)
+  local now = computer.uptime()
+  mod.run = { started = now, nextPoll = now + RUN_POLL, everActive = false, idleSince = nil }
+end
+
+local function endRun(mod, reason)
+  local r = mod.run
+  local ran = r and (computer.uptime() - r.started) or 0
+  logger:info(string.format("[RUN] M%d done after %.0fs: %s", mod.index, ran, reason))
+  mod.lastRun = reason
+  mod.run = nil
+  mod.status = "DONE"
+  mod.adapter.setWorkAllowed(false)
+end
+
 local function stepRunning(mod)
-  if not mod.adapter.isMachineActive() then
-    mod.status = "DONE"
-    mod.adapter.setWorkAllowed(false)
+  if not mod.run then beginRun(mod) end
+  local r, now = mod.run, computer.uptime()
+  if now < r.nextPoll then return end
+  r.nextPoll = now + RUN_POLL
+
+  local ok, active = pcall(mod.adapter.isMachineActive)
+  if ok and active then
+    r.everActive = true
+    r.idleSince = nil
+    return
+  end
+
+  local tips, rods = consumablesLeft(mod)
+  if r.everActive and tips and (tips < 4 or rods < 4) then
+    endRun(mod, string.format("drill parts used up (tips %d, rods %d)", tips, rods))
+    return
+  end
+
+  r.idleSince = r.idleSince or now
+  local idle = now - r.idleSince
+  if not r.everActive and idle >= START_TIMEOUT then
+    logger:warn(string.format("[RUN] M%d never started within %ds (power, computation, plasma or distance?)",
+      mod.index, START_TIMEOUT))
+    endRun(mod, "never started")
+  elseif r.everActive and idle >= STALL_TIMEOUT then
+    logger:warn(string.format("[RUN] M%d idle %ds with tips %s, rods %s left (power, computation or plasma short?)",
+      mod.index, STALL_TIMEOUT, tostring(tips), tostring(rods)))
+    endRun(mod, "stalled")
   end
 end
 
@@ -519,7 +583,13 @@ local function drawModulePanel()
     clear(row); term.setCursor(P1 + 1, row)
     if mod.status == "RUNNING" then
       gpu.setForeground(0xFFAA00)
-      io.write(string.format("  M%d [%-5s]  %s", mod.index, mod.tier, mod.job and mod.job.asteroid or "?"))
+      local r, state = mod.run, "starting"
+      if r and r.idleSince then
+        state = string.format("%s %ds", r.everActive and "idle" or "starting", math.floor(computer.uptime() - r.idleSince))
+      elseif r and r.everActive then
+        state = "mining"
+      end
+      io.write(string.format("  M%d [%-5s]  %s  %s", mod.index, mod.tier, mod.job and mod.job.asteroid or "?", state))
     elseif mod.status == "LOADING" then
       gpu.setForeground(0xFFFF00)
       io.write(string.format("  M%d [%-5s]  LOADING %s", mod.index, mod.tier, mod.job and mod.job.asteroid or ""))
@@ -535,7 +605,7 @@ local function drawModulePanel()
       clear(row); term.setCursor(P1 + 3, row)
       gpu.setForeground(0xCCCCCC)
       local droneName = config.drones[mod.job.droneKey] or "?"
-      local lvl = droneName:match("MK%-(.+)") or "?"
+      local lvl = droneName:match("[Mm][Kk]%-(%S+)") or "?"
       io.write(string.format("dist=%d  drone=MK-%s", mod.job.distance or 0, lvl))
       row = row + 1
 
@@ -664,7 +734,7 @@ local function drawHWPanel()
       clear(row); term.setCursor(P3 + 1, row)
       gpu.setForeground(0x00FFFF)
       local droneName = config.drones[key] or ("Drone-" .. key)
-      local lvl = droneName:match("MK%-(.+)") or "?"
+      local lvl = droneName:match("[Mm][Kk]%-(%S+)") or "?"
       io.write(string.format("  %-18s  x%d", "MK-" .. lvl, count))
       row = row + 1; any = true
     end
