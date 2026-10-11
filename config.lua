@@ -607,6 +607,7 @@ config.dustTargets = {
   ["Black Plutonium Dust"]     = { asteroid="Cosmic",              priority=5 },
   ["Infinity Catalyst Dust"]   = { asteroid="Infinity Catalyst",   priority=1 },
   ["Staballoy Dust"]           = { asteroid="Everglades",          priority=1},
+  ["Lautarite Dust"]           = { asteroid="Everglades",          priority=2 },
   ["Kleinite Dust"]            = { asteroid="Draconic",            priority=3 },
 
   -- === RARE EARTH & LANTHANIDE PROCESSING LINE ===
@@ -751,6 +752,7 @@ config.conditions = {
   { itemName="Orundum Dust",            amountToMaintain=qty("10m")   },
   { itemName="Tiberium Dust",           amountToMaintain=qty("10m")   },
   { itemName="Silicon Solar Grade (Poly SI) Dust", amountToMaintain=qty("10m") },
+  { itemName="Lautarite Dust",          amountToMaintain=qty("1m")    },  -- only 4% of Everglades
 --  { itemName="Trinium Dust",            amountToMaintain=qty("10m")  },
 --  { itemName="Adamantium Dust",         amountToMaintain=qty("15m")  },
 --  { itemName="Aluminium Dust",          amountToMaintain=qty("100m") },
